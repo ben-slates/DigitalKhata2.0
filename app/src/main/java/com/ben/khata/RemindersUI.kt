@@ -107,7 +107,7 @@ private fun dateTime(value: Long): String = SimpleDateFormat("dd MMM yyyy, hh:mm
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.size(48.dp).background(if (r.type == 0) MaterialTheme.colorScheme.errorContainer.copy(alpha=0.5f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha=0.5f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
-                    Text(if (r.type == 0) "PAID" else "REC", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = if (r.type == 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                    Text(if (r.type == 0) "TO PAY" else "TO REC", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = if (r.type == 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
@@ -249,7 +249,7 @@ private fun dateTime(value: Long): String = SimpleDateFormat("dd MMM yyyy, hh:mm
                     Avatar(r.personName, size = 64.dp)
                     Spacer(Modifier.height(12.dp))
                     Text(r.personName, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(if (r.type == 0) "Paid" else "Received", color = Color.White.copy(alpha=0.8f), modifier = Modifier.background(Color.Black.copy(alpha=0.2f), RoundedCornerShape(4.dp)).padding(horizontal=8.dp, vertical=4.dp))
+                    Text(if (r.type == 0) "To Pay" else "To Receive", color = Color.White.copy(alpha=0.8f), modifier = Modifier.background(Color.Black.copy(alpha=0.2f), RoundedCornerShape(4.dp)).padding(horizontal=8.dp, vertical=4.dp))
                     Spacer(Modifier.height(16.dp))
                     Text(money(r.amount), color = Color.White, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.ExtraBold)
                     Text(status, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.background(Color.White.copy(alpha=0.2f), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 4.dp).padding(top = 8.dp))

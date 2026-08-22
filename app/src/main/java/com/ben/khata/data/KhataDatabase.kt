@@ -61,7 +61,7 @@ interface KhataDao {
 
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions") fun total(): Flow<Long>
     @Query("SELECT COUNT(*) FROM people") fun peopleCount(): Flow<Int>
-    @Query("SELECT totalBudget + (SELECT COALESCE(SUM(amount), 0) FROM transactions) FROM app_settings WHERE id = 1") fun budget(): Flow<Long?>
+    @Query("SELECT COALESCE((SELECT totalBudget FROM app_settings WHERE id = 1), 0) + COALESCE((SELECT SUM(amount) FROM transactions), 0)") fun budget(): Flow<Long?>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun saveSettings(settings: AppSettings)
     @Query("UPDATE app_settings SET totalBudget = totalBudget + :amount WHERE id = 1") suspend fun increaseBudget(amount: Long): Int
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun addPerson(person: Person): Long

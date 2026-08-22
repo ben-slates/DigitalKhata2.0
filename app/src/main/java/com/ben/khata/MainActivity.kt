@@ -340,8 +340,8 @@ class MainActivity : ComponentActivity() {
     
     val pending = reminders.filter { it.status == 0 }
     val today = remember { java.util.Calendar.getInstance().apply { set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0) }.timeInMillis }
-    val overdueAmount = pending.filter { it.dueDate < today }.sumOf { it.amount }
-    val upcoming = pending.filter { it.dueDate >= today }.sortedBy { it.dueDate }.take(5)
+    val overdueAmount = pending.sumOf { it.amount }
+    val upcoming = pending.sortedBy { it.dueDate }.take(5)
     
     Scaffold(topBar = { AppHeader("Hello, ${androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE).getString("user_name", "")} 👋", "Good morning") }) { padding ->
         LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = PaddingValues(top = 20.dp, bottom = 100.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -650,6 +650,8 @@ class MainActivity : ComponentActivity() {
     var editing by remember { mutableStateOf(false) }
     var addingBudget by remember { mutableStateOf(false) }
     var showingAbout by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
+    val history by vm.history.collectAsState(emptyList())
     
     if (editingName) AlertDialog(
         onDismissRequest = { editingName = false }, 
@@ -701,6 +703,8 @@ class MainActivity : ComponentActivity() {
                             Row(Modifier.fillMaxWidth().clickable { addingBudget = true }.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AddCircleOutline, null, tint = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.width(16.dp)); Text("Add Amount to Khata", Modifier.weight(1f)); Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha=0.1f))
                             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.AttachMoney, null, tint = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.width(16.dp)); Text("Currency", Modifier.weight(1f)); Text("PKR", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha=0.1f))
+                            Row(Modifier.fillMaxWidth().clickable { showHistory = true }.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.ReceiptLong, null, tint = MaterialTheme.colorScheme.onSurfaceVariant); Spacer(Modifier.width(16.dp)); Text("View Transaction History", Modifier.weight(1f)); Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                         }
                     }
                 }
@@ -738,6 +742,54 @@ class MainActivity : ComponentActivity() {
             item {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
                     Text("Hisaab App v1.0", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+
+    if (showHistory) {
+        val grouped = remember(history) {
+            history.groupBy { java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(java.util.Date(it.createdAt)) }
+        }
+        Scaffold(topBar = {
+            TopAppBar(
+                title = { Text("Transaction History", fontWeight = FontWeight.ExtraBold) },
+                navigationIcon = { IconButton({ showHistory = false }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
+            )
+        }) { pad ->
+            if (history.isEmpty()) {
+                Box(Modifier.padding(pad).fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.ReceiptLong, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        Text("No transactions yet", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    grouped.forEach { (dayLabel, txns) ->
+                        item {
+                            Text(dayLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 6.dp))
+                        }
+                        items(txns) { tx ->
+                            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Box(Modifier.size(40.dp).background(if (tx.amount >= 0) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                                        Text(if (tx.amount >= 0) "+" else "−", fontWeight = FontWeight.Bold, color = if (tx.amount >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(tx.personName, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        if (tx.note.isNotBlank()) Text(tx.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(money(kotlin.math.abs(tx.amount)), fontWeight = FontWeight.Bold, color = if (tx.amount >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                                        Text(if (tx.amount >= 0) "Received" else "Paid", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item { Spacer(Modifier.height(80.dp)) }
                 }
             }
         }
